@@ -13,7 +13,7 @@ import java.util.Scanner;
 public class Client {
 	
 	public static void main(String[] args) throws SocketException, IOException {
-		// TODO Auto-generated method stub
+		//inputs
 		Scanner scan = new Scanner(System.in);
 		String hostname = scan.next();
 		int port = scan.nextInt();
@@ -21,6 +21,8 @@ public class Client {
 		int N = scan.nextInt();
 		int mss = scan.nextInt();
 		scan.close();
+		
+		//Socket
 		DatagramSocket clientSocket = new DatagramSocket();
 		InetAddress serverIP = InetAddress.getByName(hostname);
 		
@@ -28,9 +30,16 @@ public class Client {
 		byte[] dataPacket = Files.readAllBytes(filePath);
 		ArrayList<byte[]> segmentList = chunksDivision(dataPacket, mss);
 		
-		System.out.println("Sending");
-		DatagramPacket toReceiver = new DatagramPacket(dataPacket, dataPacket.length, serverIP, port);
+		byte[] send = null;
+		byte[] receive = null;
+		DatagramPacket toReceiver = new DatagramPacket(send, send.length, serverIP, port);
 		clientSocket.send(toReceiver);
+		DatagramPacket fromReceiver = new DatagramPacket(receive, receive.length);
+		clientSocket.receive(fromReceiver);
+		int seqAck = ackHandler(fromReceiver.getData());
+		if(seqAck!=-1){
+			
+		}
 	}
 	public static ArrayList<byte[]> chunksDivision(byte[] dataPacket, int MSS){
 		ArrayList<byte[]> segmentList = new ArrayList<byte[]>();
@@ -44,8 +53,46 @@ public class Client {
 	}
 	public static String createHeader(int sequence, byte[] data){
 		String sequenceStr = Integer.toBinaryString(sequence);
-		
+		String checksum = checksumCalculation(data);
 		String fixedVal = "0101010101010101"; 
-		return null;
+		return sequenceStr + checksum + fixedVal;
+	}
+	public static String checksumCalculation(byte[] data){
+		int dataLength = data.length;
+		int Checksum = 0;
+		int i = 0;
+		while(dataLength>0)
+		{
+		    int Word = ((data[i]<<8) + data[i+1]) + Checksum;
+
+		    Checksum = Word & 0x0FFFF;
+
+		    Word = (Word>>16);
+
+		    Checksum = Word + Checksum;
+
+		    dataLength -= 2;
+		    i += 2;
+		}
+		Checksum = ~Checksum;
+		return Integer.toString(Checksum);
+	}
+	public static int ackHandler(byte[] data){
+		String ACK = Arrays.toString(data);
+		String packetType = ACK.substring(48, 64);
+		if(packetType.equals("1010101010101010")){
+			return binToDec(ACK.substring(0, 32));
+		}
+		return -1;
+	}
+	private static int binToDec(String substring) {
+		int dec = 0;
+		int power = 0;
+		for(int i=substring.length()-1; i>=0; i--){
+			if(substring.charAt(i)=='1')
+				dec += Math.pow(2, power);
+			power++;
+		}
+		return dec;
 	}
 }
