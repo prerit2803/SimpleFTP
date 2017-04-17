@@ -8,8 +8,6 @@ import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Scanner;
 
 class Segment {
@@ -33,6 +31,7 @@ public class Client {
 
 	public static void main(String[] args) throws IOException {
 		// inputs
+		System.out.println("This is client");
 		Scanner scan = new Scanner(System.in);
 		String hostname = scan.next();
 		int port = scan.nextInt();
@@ -66,11 +65,9 @@ public class Client {
 		chunksDivision(dataPacket, mss);
 		int currentIndex = 0;
 		int pointer = 0;
-		int seqNumber = 0;
 		int seqAck = -1;
 		
-		while ((currentIndex * mss) < dataPacket.length) { // currentindx <
-															// noofpackets
+		while ((currentIndex * mss) < dataPacket.length) { 
 			while (pointer < N && (currentIndex * mss) < dataPacket.length) {// sending
 				Segment temp = head;
 				while (temp.index != currentIndex) // searching for data to send
@@ -91,6 +88,7 @@ public class Client {
 				DatagramPacket toReceiver = new DatagramPacket(packetToSend, packetToSend.length, serverIP, port);
 				try {// sending packet to server
 					clientSocket.send(toReceiver);
+					System.out.println("Packet sent : " +currentIndex);
 					currentIndex++;
 					pointer++;
 				} catch (IOException e) {
@@ -98,7 +96,7 @@ public class Client {
 				}
 			}
 			// in receiving mode
-			System.out.println("receiving with :"+pointer +"currentIndex"+currentIndex);
+//			System.out.println("receiving with :"+pointer +"currentIndex"+currentIndex);
 			int timeout = 1000;// in milliseconds
 			byte[] receive = new byte[1024];
 			DatagramPacket fromReceiver = new DatagramPacket(receive, receive.length);
@@ -110,7 +108,7 @@ public class Client {
 				while (flag) {
 					clientSocket.receive(fromReceiver);
 					seqAck = ackHandler(fromReceiver.getData());
-					System.out.println("seqAck : "+seqAck);
+					System.out.println("Ack received for : "+seqAck);
 					if (seqAck == tempIndex - 1) { // latest packet
 														// acknowledgement
 						pointer = 0;
@@ -166,12 +164,12 @@ public class Client {
 			sequenceStr = "0" + sequenceStr;
 		}
 		String header = sequenceStr + checksum + fixedVal;
-		System.out.println("header is"+header);
+//		System.out.println("header is"+header);
 		return header.getBytes();
 	}
 
 	public static String generateChecksum(String s) {
-		System.out.println("checksum for " + s);
+//		System.out.println("checksum for " + s);
 		String hex_value = new String();
 		// 'hex_value' will be used to store various hex values as a string
 		int x, i, checksum = 0;
@@ -184,7 +182,7 @@ public class Client {
 			x = (int) (s.charAt(i + 1));
 			hex_value = hex_value + Integer.toHexString(x);
 			// Extract two characters and get their hexadecimal ASCII values
-			System.out.println(s.charAt(i) + "" + s.charAt(i + 1) + " : " + hex_value);
+//			System.out.println(s.charAt(i) + "" + s.charAt(i + 1) + " : " + hex_value);
 			x = Integer.parseInt(hex_value, 16);
 			// Convert the hex_value into int and store it
 			checksum += x;
@@ -197,14 +195,14 @@ public class Client {
 			hex_value = Integer.toHexString(x);
 			x = (int) (s.charAt(i + 1));
 			hex_value = hex_value + Integer.toHexString(x);
-			System.out.println(s.charAt(i) + "" + s.charAt(i + 1) + " : " + hex_value);
+//			System.out.println(s.charAt(i) + "" + s.charAt(i + 1) + " : " + hex_value);
 			x = Integer.parseInt(hex_value, 16);
 		} else {
 			// If number of characters is odd, last 2 digits will be 00.
 			x = (int) (s.charAt(i));
 			hex_value = "00" + Integer.toHexString(x);
 			x = Integer.parseInt(hex_value, 16);
-			System.out.println(s.charAt(i) + " : " + hex_value);
+//			System.out.println(s.charAt(i) + " : " + hex_value);
 		}
 		checksum += x;
 		// Add the generated value of 'x' from the if-else case into 'checksum'
@@ -223,7 +221,11 @@ public class Client {
 		}
 		checksum = generateComplement(checksum);
 		// Get the complement
-		return Integer.toBinaryString(checksum);
+		String padding =Integer.toBinaryString(checksum);
+		for(int h=padding.length(); h<16; h++){
+			padding = "0"+ padding;
+		}
+		return padding;
 	}
 
 	public static int generateComplement(int checksum) {
@@ -242,9 +244,9 @@ public class Client {
 				ACK +="1";
 			}
 		}
-		System.out.println("ACK data: "+ACK);
+//		System.out.println("ACK data: "+ACK);
 		String packetType = ACK.substring(48, 64);
-		System.out.println("ACK type: "+packetType);
+//		System.out.println("ACK type: "+packetType);
 		if (packetType.equals("1010101010101010")) {
 			return binToDec(ACK.substring(0, 32));
 		}
