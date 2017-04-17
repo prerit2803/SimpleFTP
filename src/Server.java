@@ -53,22 +53,22 @@ public class Server {
 		boolean flag = true;
 		while (flag) {
 			try {
-//				System.out.println("Receiving");
+				// System.out.println("Receiving");
 				byte[] dataPacket = new byte[1024];
 				fromClient = new DatagramPacket(dataPacket, dataPacket.length);
 				serverSocket.receive(fromClient);
 				double rand = Math.random();
-//				System.out.println("random number : " + rand);
+				// System.out.println("random number : " + rand);
 				String data = new String(fromClient.getData()).substring(0, fromClient.getLength());
-//				System.out.println("Data : " + data);
+				// System.out.println("Data : " + data);
 				int seqNumber = binToDec(data.substring(0, 32));
 				System.out.println("Packet recieved : " + seqNumber);
 				int checksum = binToDec(data.substring(32, 48));
-//				System.out.println("checksum: " + checksum);
+				// System.out.println("checksum: " + checksum);
 				String packetType = data.substring(48, 64);
-//				System.out.println("pckt type : " + packetType);
+				// System.out.println("pckt type : " + packetType);
 				String dataIn = data.substring(64, data.length());
-//				System.out.println(" data: " + dataIn);
+				// System.out.println(" data: " + dataIn);
 				if (packetType.equals("0000000000000000")) {// when EOF is send
 					flag = false;
 					break;
@@ -77,7 +77,7 @@ public class Server {
 					System.out.println("Packet loss, sequence number = " + seqNumber);
 					continue;
 				} else if (receive(dataIn, checksum) == 0 && seqNumber == currentIndex) {
-//					System.out.println("checksum is okay");
+					// System.out.println("checksum is okay");
 					ReceivedSegment segmentClient = new ReceivedSegment(currentIndex, dataIn);
 					if (head == null)
 						head = segmentClient;
@@ -87,32 +87,32 @@ public class Server {
 							temp = temp.next;
 						temp.next = segmentClient;
 					}
-//					System.out.println("writing: "+dataIn);
+					// System.out.println("writing: "+dataIn);
 					baos.write(dataIn.getBytes());
-//					System.out.println("insertion done");
+					// System.out.println("insertion done");
 					InetAddress IP = fromClient.getAddress();
 					int portNumber = fromClient.getPort();
 					byte[] acknowledgement = ackSender(seqNumber);
 					DatagramPacket toClient = new DatagramPacket(acknowledgement, acknowledgement.length, IP,
 							portNumber);
 					serverSocket.send(toClient);
-					System.out.println("ACK sent for: "+seqNumber);
+					System.out.println("ACK sent for: " + seqNumber);
 					currentIndex++;
 				}
 			} catch (Exception e) {
 				System.err.println(e);
 			}
 		}
-//		System.out.println("Writing to file");
+		// System.out.println("Writing to file");
 		FileOutputStream file = null;
 		try {
 			file = new FileOutputStream(filename);
-//			ReceivedSegment temp = head;
-//			while (temp != null) {
-//				String writeData = temp.data;
-//				System.out.print(writeData+" ");
-//				baos.write(writeData.getBytes());
-//			}
+			// ReceivedSegment temp = head;
+			// while (temp != null) {
+			// String writeData = temp.data;
+			// System.out.print(writeData+" ");
+			// baos.write(writeData.getBytes());
+			// }
 			baos.writeTo(file);
 			file.close();
 		} catch (FileNotFoundException e) {
@@ -130,12 +130,12 @@ public class Server {
 			header = "0" + header;
 		}
 		header = header + "00000000000000001010101010101010";
-//		System.out.println("header is: " + header);
+		// System.out.println("header is: " + header);
 		return header.getBytes();
 	}
 
 	public static int generateChecksum(String s) {
-//		System.out.println("checksum for " + s);
+		// System.out.println("checksum for " + s);
 		String hex_value = new String();
 		// 'hex_value' will be used to store various hex values as a string
 		int x, i, checksum = 0;
@@ -148,7 +148,8 @@ public class Server {
 			x = (int) (s.charAt(i + 1));
 			hex_value = hex_value + Integer.toHexString(x);
 			// Extract two characters and get their hexadecimal ASCII values
-//			System.out.println(s.charAt(i) + "" + s.charAt(i + 1) + " : " + hex_value);
+			// System.out.println(s.charAt(i) + "" + s.charAt(i + 1) + " : " +
+			// hex_value);
 			x = Integer.parseInt(hex_value, 16);
 			// Convert the hex_value into int and store it
 			checksum += x;
@@ -161,14 +162,15 @@ public class Server {
 			hex_value = Integer.toHexString(x);
 			x = (int) (s.charAt(i + 1));
 			hex_value = hex_value + Integer.toHexString(x);
-//			System.out.println(s.charAt(i) + "" + s.charAt(i + 1) + " : " + hex_value);
+			// System.out.println(s.charAt(i) + "" + s.charAt(i + 1) + " : " +
+			// hex_value);
 			x = Integer.parseInt(hex_value, 16);
 		} else {
 			// If number of characters is odd, last 2 digits will be 00.
 			x = (int) (s.charAt(i));
 			hex_value = "00" + Integer.toHexString(x);
 			x = Integer.parseInt(hex_value, 16);
-//			System.out.println(s.charAt(i) + " : " + hex_value);
+			// System.out.println(s.charAt(i) + " : " + hex_value);
 		}
 		checksum += x;
 		// Add the generated value of 'x' from the if-else case into 'checksum'
@@ -191,20 +193,23 @@ public class Server {
 	}
 
 	public static int generateComplement(int checksum) {
-//		System.out.println("received checksum in comp: " + checksum);
+		// System.out.println("received checksum in comp: " + checksum);
 		// Generates 15's complement of a hexadecimal value
 		checksum = Integer.parseInt("FFFF", 16) - checksum;
-//		System.out.println("comp checksum in comp: " + checksum);
+		// System.out.println("comp checksum in comp: " + checksum);
 		return checksum;
 	}
 
 	public static int receive(String s, int checksum) {
 		int generated_checksum = generateChecksum(s);
-//		System.out.println("received checksum: " + Integer.toBinaryString(checksum));
-//		System.out.println("generated checksum: " + Integer.toBinaryString(generated_checksum));
+		// System.out.println("received checksum: " +
+		// Integer.toBinaryString(checksum));
+		// System.out.println("generated checksum: " +
+		// Integer.toBinaryString(generated_checksum));
 		// Calculate checksum of received data
 		generated_checksum = generateComplement(generated_checksum);
-//		System.out.println("comp checksum: " + Integer.toBinaryString(generated_checksum));
+		// System.out.println("comp checksum: " +
+		// Integer.toBinaryString(generated_checksum));
 		// System.out.println("checksum comp: " +
 		// Integer.toBinaryString(generated_checksum));
 		// Then get its complement, since generated checksum is complemented
@@ -212,7 +217,7 @@ public class Server {
 		// Syndrome is addition of the 2 checksums
 		syndrome = generateComplement(syndrome);
 		// It is complemented
-//		System.out.println("Syndrome = " + Integer.toHexString(syndrome));
+		// System.out.println("Syndrome = " + Integer.toHexString(syndrome));
 		return syndrome;
 	}
 

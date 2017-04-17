@@ -66,29 +66,30 @@ public class Client {
 		int currentIndex = 0;
 		int pointer = 0;
 		int seqAck = -1;
-		
-		while ((currentIndex * mss) < dataPacket.length) { 
+
+		while ((currentIndex * mss) < dataPacket.length) {
 			while (pointer < N && (currentIndex * mss) < dataPacket.length) {// sending
 				Segment temp = head;
 				while (temp.index != currentIndex) // searching for data to send
 					temp = temp.next;
 				String data = temp.data;
 				byte[] header = createHeader(currentIndex, data); // creating
-																// header
+																	// header
 				byte[] dataBytes = data.getBytes();
 				byte[] packetToSend = new byte[header.length + dataBytes.length];
-				for (int i = 0, j=0; i < packetToSend.length ; i++) { // copying
-																// header + data
+				for (int i = 0, j = 0; i < packetToSend.length; i++) { // copying
+					// header + data
 					if (i < header.length)
 						packetToSend[i] = header[i];
-					else{
+					else {
 						packetToSend[i] = dataBytes[j];
 						j++;
-				}}
+					}
+				}
 				DatagramPacket toReceiver = new DatagramPacket(packetToSend, packetToSend.length, serverIP, port);
 				try {// sending packet to server
 					clientSocket.send(toReceiver);
-					System.out.println("Packet sent : " +currentIndex);
+					System.out.println("Packet sent : " + currentIndex);
 					currentIndex++;
 					pointer++;
 				} catch (IOException e) {
@@ -96,23 +97,24 @@ public class Client {
 				}
 			}
 			// in receiving mode
-//			System.out.println("receiving with :"+pointer +"currentIndex"+currentIndex);
+			// System.out.println("receiving with :"+pointer
+			// +"currentIndex"+currentIndex);
 			int timeout = 1000;// in milliseconds
 			byte[] receive = new byte[1024];
 			DatagramPacket fromReceiver = new DatagramPacket(receive, receive.length);
 			boolean flag = true;
-			
+
 			int tempIndex = currentIndex;
 			try {
 				clientSocket.setSoTimeout(timeout);
 				while (flag) {
 					clientSocket.receive(fromReceiver);
 					seqAck = ackHandler(fromReceiver.getData());
-					System.out.println("Ack received for : "+seqAck);
+					System.out.println("Ack received for : " + seqAck);
 					if (seqAck == tempIndex - 1) { // latest packet
-														// acknowledgement
+													// acknowledgement
 						pointer = 0;
-						currentIndex=tempIndex;
+						currentIndex = tempIndex;
 						flag = false;
 					} else if (seqAck != -1) { // any other acknowledgement
 						pointer = currentIndex - seqAck - 1;
@@ -121,8 +123,8 @@ public class Client {
 				}
 			} catch (SocketTimeoutException ste) {// timeout
 				System.out.println("Timeout, sequence number = " + seqAck);
-				currentIndex=seqAck+1;
-				pointer=0;
+				currentIndex = seqAck + 1;
+				pointer = 0;
 			}
 		}
 		// EOF
@@ -164,12 +166,12 @@ public class Client {
 			sequenceStr = "0" + sequenceStr;
 		}
 		String header = sequenceStr + checksum + fixedVal;
-//		System.out.println("header is"+header);
+		// System.out.println("header is"+header);
 		return header.getBytes();
 	}
 
 	public static String generateChecksum(String s) {
-//		System.out.println("checksum for " + s);
+		// System.out.println("checksum for " + s);
 		String hex_value = new String();
 		// 'hex_value' will be used to store various hex values as a string
 		int x, i, checksum = 0;
@@ -182,7 +184,8 @@ public class Client {
 			x = (int) (s.charAt(i + 1));
 			hex_value = hex_value + Integer.toHexString(x);
 			// Extract two characters and get their hexadecimal ASCII values
-//			System.out.println(s.charAt(i) + "" + s.charAt(i + 1) + " : " + hex_value);
+			// System.out.println(s.charAt(i) + "" + s.charAt(i + 1) + " : " +
+			// hex_value);
 			x = Integer.parseInt(hex_value, 16);
 			// Convert the hex_value into int and store it
 			checksum += x;
@@ -195,14 +198,15 @@ public class Client {
 			hex_value = Integer.toHexString(x);
 			x = (int) (s.charAt(i + 1));
 			hex_value = hex_value + Integer.toHexString(x);
-//			System.out.println(s.charAt(i) + "" + s.charAt(i + 1) + " : " + hex_value);
+			// System.out.println(s.charAt(i) + "" + s.charAt(i + 1) + " : " +
+			// hex_value);
 			x = Integer.parseInt(hex_value, 16);
 		} else {
 			// If number of characters is odd, last 2 digits will be 00.
 			x = (int) (s.charAt(i));
 			hex_value = "00" + Integer.toHexString(x);
 			x = Integer.parseInt(hex_value, 16);
-//			System.out.println(s.charAt(i) + " : " + hex_value);
+			// System.out.println(s.charAt(i) + " : " + hex_value);
 		}
 		checksum += x;
 		// Add the generated value of 'x' from the if-else case into 'checksum'
@@ -221,9 +225,9 @@ public class Client {
 		}
 		checksum = generateComplement(checksum);
 		// Get the complement
-		String padding =Integer.toBinaryString(checksum);
-		for(int h=padding.length(); h<16; h++){
-			padding = "0"+ padding;
+		String padding = Integer.toBinaryString(checksum);
+		for (int h = padding.length(); h < 16; h++) {
+			padding = "0" + padding;
 		}
 		return padding;
 	}
@@ -236,17 +240,16 @@ public class Client {
 
 	public static int ackHandler(byte[] data) {
 		String ACK = "";// Arrays.toString(data);
-		for(int i=0; i<64;i++){
-			if(data[i]==48){
+		for (int i = 0; i < 64; i++) {
+			if (data[i] == 48) {
 				ACK += "0";
-			}
-			else{
-				ACK +="1";
+			} else {
+				ACK += "1";
 			}
 		}
-//		System.out.println("ACK data: "+ACK);
+		// System.out.println("ACK data: "+ACK);
 		String packetType = ACK.substring(48, 64);
-//		System.out.println("ACK type: "+packetType);
+		// System.out.println("ACK type: "+packetType);
 		if (packetType.equals("1010101010101010")) {
 			return binToDec(ACK.substring(0, 32));
 		}
