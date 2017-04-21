@@ -54,7 +54,7 @@ public class Server {
 		while (flag) {
 			try {
 				// System.out.println("Receiving");
-				byte[] dataPacket = new byte[1024];
+				byte[] dataPacket = new byte[2048];
 				fromClient = new DatagramPacket(dataPacket, dataPacket.length);
 				serverSocket.receive(fromClient);
 				double rand = Math.random();
@@ -135,7 +135,7 @@ public class Server {
 	}
 
 	public static int generateChecksum(String s) {
-		// System.out.println("checksum for " + s);
+//		 System.out.println("checksum for " + s);
 		String hex_value = new String();
 		// 'hex_value' will be used to store various hex values as a string
 		int x, i, checksum = 0;
@@ -148,9 +148,10 @@ public class Server {
 			x = (int) (s.charAt(i + 1));
 			hex_value = hex_value + Integer.toHexString(x);
 			// Extract two characters and get their hexadecimal ASCII values
-			// System.out.println(s.charAt(i) + "" + s.charAt(i + 1) + " : " +
-			// hex_value);
+//			 System.out.println(s.charAt(i) + "" + s.charAt(i + 1) + " : " +
+//			 hex_value);
 			x = Integer.parseInt(hex_value, 16);
+//			System.out.println("x: "+x);
 			// Convert the hex_value into int and store it
 			checksum += x;
 			// Add 'x' into 'checksum'
@@ -162,19 +163,20 @@ public class Server {
 			hex_value = Integer.toHexString(x);
 			x = (int) (s.charAt(i + 1));
 			hex_value = hex_value + Integer.toHexString(x);
-			// System.out.println(s.charAt(i) + "" + s.charAt(i + 1) + " : " +
-			// hex_value);
+//			 System.out.println(s.charAt(i) + "" + s.charAt(i + 1) + " : " +
+//			 hex_value);
 			x = Integer.parseInt(hex_value, 16);
 		} else {
 			// If number of characters is odd, last 2 digits will be 00.
 			x = (int) (s.charAt(i));
 			hex_value = "00" + Integer.toHexString(x);
 			x = Integer.parseInt(hex_value, 16);
-			// System.out.println(s.charAt(i) + " : " + hex_value);
+//			 System.out.println(s.charAt(i) + " : " + hex_value);
 		}
 		checksum += x;
 		// Add the generated value of 'x' from the if-else case into 'checksum'
 		hex_value = Integer.toHexString(checksum);
+//		System.out.println("hex: "+hex_value+" len: "+ hex_value.length());
 		// Convert into hexadecimal string
 		if (hex_value.length() > 4) {
 			// If a carry is generated, then we wrap the carry
@@ -188,6 +190,7 @@ public class Server {
 			// Add it to the checksum
 		}
 		checksum = generateComplement(checksum);
+//		System.out.println("final checksum: "+checksum);
 		// Get the complement
 		return checksum;
 	}
@@ -217,7 +220,7 @@ public class Server {
 		// Syndrome is addition of the 2 checksums
 		syndrome = generateComplement(syndrome);
 		// It is complemented
-		// System.out.println("Syndrome = " + Integer.toHexString(syndrome));
+		 System.out.println("Syndrome is= " + syndrome);
 		return syndrome;
 	}
 

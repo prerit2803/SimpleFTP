@@ -66,7 +66,8 @@ public class Client {
 		int currentIndex = 0;
 		int pointer = 0;
 		int seqAck = -1;
-
+		
+		long startTime = System.currentTimeMillis();
 		while ((currentIndex * mss) < dataPacket.length) {
 			while (pointer < N && (currentIndex * mss) < dataPacket.length) {// sending
 				Segment temp = head;
@@ -132,6 +133,8 @@ public class Client {
 		byte[] sendeof = eof.getBytes();
 		DatagramPacket eofPacket = new DatagramPacket(sendeof, sendeof.length, serverIP, port);
 		clientSocket.send(eofPacket);
+		long endTime = System.currentTimeMillis();
+		System.out.println("Total Time of transfer: "+(endTime-startTime));
 	}
 
 	public static void chunksDivision(byte[] dataPacket, int MSS) {
@@ -171,7 +174,7 @@ public class Client {
 	}
 
 	public static String generateChecksum(String s) {
-		// System.out.println("checksum for " + s);
+//		 System.out.println("checksum for " + s);
 		String hex_value = new String();
 		// 'hex_value' will be used to store various hex values as a string
 		int x, i, checksum = 0;
@@ -184,12 +187,13 @@ public class Client {
 			x = (int) (s.charAt(i + 1));
 			hex_value = hex_value + Integer.toHexString(x);
 			// Extract two characters and get their hexadecimal ASCII values
-			// System.out.println(s.charAt(i) + "" + s.charAt(i + 1) + " : " +
-			// hex_value);
+//			 System.out.println(s.charAt(i) + "" + s.charAt(i + 1) + " : " +
+//			 hex_value);
 			x = Integer.parseInt(hex_value, 16);
 			// Convert the hex_value into int and store it
 			checksum += x;
 			// Add 'x' into 'checksum'
+//			System.out.println("for i: "+i+" checksum: "+checksum);
 		}
 		if (s.length() % 2 == 0) {
 			// If number of characters is even, then repeat above loop's steps
@@ -198,19 +202,21 @@ public class Client {
 			hex_value = Integer.toHexString(x);
 			x = (int) (s.charAt(i + 1));
 			hex_value = hex_value + Integer.toHexString(x);
-			// System.out.println(s.charAt(i) + "" + s.charAt(i + 1) + " : " +
-			// hex_value);
+//			 System.out.println(s.charAt(i) + "" + s.charAt(i + 1) + " : " +
+//			 hex_value);
 			x = Integer.parseInt(hex_value, 16);
 		} else {
 			// If number of characters is odd, last 2 digits will be 00.
 			x = (int) (s.charAt(i));
 			hex_value = "00" + Integer.toHexString(x);
 			x = Integer.parseInt(hex_value, 16);
-			// System.out.println(s.charAt(i) + " : " + hex_value);
+//			 System.out.println("odd length: "+s.charAt(i) + " : " + hex_value);
 		}
 		checksum += x;
+//		System.out.println("for i: "+i+" checksum: "+checksum);
 		// Add the generated value of 'x' from the if-else case into 'checksum'
 		hex_value = Integer.toHexString(checksum);
+//		System.out.println("hex: "+hex_value+" len: "+hex_value.length());
 		// Convert into hexadecimal string
 		if (hex_value.length() > 4) {
 			// If a carry is generated, then we wrap the carry
@@ -229,6 +235,7 @@ public class Client {
 		for (int h = padding.length(); h < 16; h++) {
 			padding = "0" + padding;
 		}
+//		System.out.println("checksum: "+checksum);
 		return padding;
 	}
 
