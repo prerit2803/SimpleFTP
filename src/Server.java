@@ -62,7 +62,7 @@ public class Server {
 				String data = new String(fromClient.getData()).substring(0, fromClient.getLength());
 				// System.out.println("Data : " + data);
 				int seqNumber = binToDec(data.substring(0, 32));
-				System.out.println("Packet recieved : " + seqNumber);
+				System.out.println("Packet received : " + seqNumber);
 				int checksum = binToDec(data.substring(32, 48));
 				// System.out.println("checksum: " + checksum);
 				String packetType = data.substring(48, 64);
