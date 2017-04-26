@@ -1,3 +1,5 @@
+package selectiveRepeat;
+
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -7,11 +9,28 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.util.Scanner;
 
-public class Server {
+class ReceivedSegment {
+	int index;
+	ReceivedSegment next;
+	String data;
+
+	public ReceivedSegment(int index, String data) {
+		this.index = index;
+		this.next = null;
+		this.data = data;
+	}
+}
+
+public class SelectiveServer {
+	private static ReceivedSegment head;
+
+	public SelectiveServer() {
+		head = null;
+	}
 
 	public static void main(String[] args) {
 		// input
-		System.out.println("This is Go Back N ARQ server");
+		System.out.println("This is Selective Repeat server");
 		Scanner scan = new Scanner(System.in);
 		int port = scan.nextInt();
 		String filename = scan.next();
@@ -47,8 +66,7 @@ public class Server {
 				if (rand <= pos) {
 					System.out.println("Packet loss, sequence number = " + seqNumber);
 					continue;
-				} else if (receive(dataIn, checksum) == 0 && seqNumber == currentIndex) {
-					baos.write(dataIn.getBytes());
+				} else if (receive(dataIn, checksum) == 0) {
 					InetAddress IP = fromClient.getAddress();
 					int portNumber = fromClient.getPort();
 					byte[] acknowledgement = ackSender(seqNumber);
@@ -56,7 +74,55 @@ public class Server {
 							portNumber);
 					serverSocket.send(toClient);
 					System.out.println("ACK sent for: " + seqNumber);
-					currentIndex++;
+					if (seqNumber == currentIndex) {
+						baos.write(dataIn.getBytes());
+						System.out.println("writing: "+currentIndex);
+						currentIndex++;
+						if (head != null) {
+							ReceivedSegment temp = head;
+							while (temp != null) {
+								 if(temp.index != currentIndex)
+									 break;
+								System.out.println("writing: "+temp.index);
+								baos.write(temp.data.getBytes());
+								head = head.next;
+								temp = temp.next;
+								currentIndex++;
+							}
+						}
+					} else if (seqNumber > currentIndex) {
+						System.out.println("out of order");
+						ReceivedSegment recSeg = new ReceivedSegment(seqNumber, dataIn);
+						if (head == null)
+							head = recSeg;
+						else {
+							ReceivedSegment temp = head;
+							ReceivedSegment prev = head;
+							while (temp.next != null && temp.index < seqNumber) {
+								prev = temp;
+								temp = temp.next;
+							}
+							if (temp.index < seqNumber){
+								temp.next = recSeg;
+								System.out.println("inserting after: "+temp.index);
+							}
+							else {
+								if(prev!=temp)
+									prev.next = recSeg;
+								else
+									head = recSeg;
+								recSeg.next = temp;
+								System.out.println("inserting after: "+prev.index+" before: "+temp.index);
+							}
+						}
+						System.out.println("Linked List:");
+						ReceivedSegment t = head;
+						while(t!=null)
+						{
+							System.out.print(t.index+" ");
+							t = t.next;
+						}
+					}
 				}
 			} catch (Exception e) {
 				System.err.println(e);

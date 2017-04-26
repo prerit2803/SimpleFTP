@@ -1,3 +1,5 @@
+package selectiveRepeat;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -22,16 +24,16 @@ class Segment {
 	}
 }
 
-public class Client {
+public class SelectiveClient {
 	private static Segment head;
 
-	public Client() {
+	public SelectiveClient() {
 		head = null;
 	}
 
 	public static void main(String[] args) throws IOException {
 		// inputs
-		System.out.println("This is Go Back N ARQ client");
+		System.out.println("This is client");
 		Scanner scan = new Scanner(System.in);
 		String hostname = scan.next();
 		int port = scan.nextInt();
@@ -39,6 +41,8 @@ public class Client {
 		int N = scan.nextInt();
 		int mss = scan.nextInt();
 		scan.close();
+
+		int[] marker = new int[N];
 
 		// Socket
 		DatagramSocket clientSocket = null;
@@ -66,13 +70,25 @@ public class Client {
 		int currentIndex = 0;
 		int pointer = 0;
 		int seqAck = -1;
-
+		int m = 0;
 		long startTime = System.currentTimeMillis();
 		while ((currentIndex * mss) < dataPacket.length) {
-			while (pointer < N && (currentIndex * mss) < dataPacket.length) {// sending
+//			System.out.println("marker: ");
+//			for(int qw=0;qw<N;qw++)
+//				System.out.print(marker[qw]+" ");
+//			System.out.println();
+			for (m = 0; m < N; m++) {// sending
+				if ((currentIndex * mss) > dataPacket.length)
+					break;
+				if (marker[m] == 2) {
+					currentIndex++;
+					continue;
+				}
 				Segment temp = head;
-				while (temp.index != currentIndex) // searching for data to send
+				while (temp!=null &&temp.index != currentIndex) // searching for data to send
 					temp = temp.next;
+				if(temp==null)
+					break;
 				String data = temp.data;
 				byte[] header = createHeader(currentIndex, data); // creating
 																	// header
@@ -91,39 +107,63 @@ public class Client {
 				try {// sending packet to server
 					clientSocket.send(toReceiver);
 					System.out.println("Packet sent : " + currentIndex);
+					marker[m] = 1;
 					currentIndex++;
-					pointer++;
+					// pointer++;
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
 			}
+			System.out.println("current index: " + currentIndex + " with m: " + m);
 			// in receiving mode
 			int timeout = 1000;// in milliseconds
 			byte[] receive = new byte[1024];
 			DatagramPacket fromReceiver = new DatagramPacket(receive, receive.length);
 			boolean flag = true;
 
-			int tempIndex = currentIndex;
+			currentIndex = currentIndex - m;
 			try {
 				clientSocket.setSoTimeout(timeout);
 				while (flag) {
 					clientSocket.receive(fromReceiver);
 					seqAck = ackHandler(fromReceiver.getData());
 					System.out.println("Ack received for : " + seqAck);
-					if (seqAck == tempIndex - 1) { // latest packet
-													// acknowledgement
-						pointer = 0;
-						currentIndex = tempIndex;
-						flag = false;
-					} else if (seqAck != -1) { // any other acknowledgement
-						pointer = currentIndex - seqAck - 1;
-						currentIndex = seqAck + 1;
+					if (seqAck != -1) { // any other acknowledgement
+//						System.out.println("current index: " + currentIndex);
+						int index = seqAck - currentIndex;
+						marker[index] = 2;
+//						int check = index + 1;
+						//int one = 0;
+//						while(check<N && marker[check]==2){
+//							for (int i = check; i < N; i++) {
+//								marker[i - 1] = marker[i];
+//							}
+//							marker[N - 1] = -1;
+//							currentIndex++;
+//							check=index;
+//							one = 1;
+//						}
+						if (index == 0) {
+							while(marker[index]==2){
+							for (int i = 1; i < N; i++) {
+								marker[i - 1] = marker[i];
+							}
+							marker[N - 1] = -1;
+							currentIndex++;
+							}
+							// tempIndex++;
+						}
+//						System.out.println("current index: " + currentIndex);
+//						System.out.println("marker: ");
+//						for(int qw=0;qw<N;qw++)
+//							System.out.print(marker[qw]+" ");
+//						System.out.println();
 					}
 				}
 			} catch (SocketTimeoutException ste) {// timeout
 				System.out.println("Timeout, sequence number = " + seqAck);
-				currentIndex = seqAck + 1;
-				pointer = 0;
+				// currentIndex = seqAck + 1;
+				// pointer = 0;
 			}
 		}
 		// EOF
@@ -137,6 +177,7 @@ public class Client {
 
 	public static void chunksDivision(byte[] dataPacket, int MSS) {
 		int totalPackets = (int) Math.ceil((double) dataPacket.length / MSS);
+		System.out.println("Total packets: " + totalPackets);
 		String dataString = new String(dataPacket); // nhi chle toh utf add kre
 													// :D
 		for (int i = 0; i < totalPackets; i++) {
@@ -179,37 +220,62 @@ public class Client {
 			hex_value = Integer.toHexString(x);
 			x = (int) (s.charAt(i + 1));
 			hex_value = hex_value + Integer.toHexString(x);
+			// Extract two characters and get their hexadecimal ASCII values
+			// System.out.println(s.charAt(i) + "" + s.charAt(i + 1) + " : " +
+			// hex_value);
 			x = Integer.parseInt(hex_value, 16);
+			// Convert the hex_value into int and store it
 			checksum += x;
+			// Add 'x' into 'checksum'
+			// System.out.println("for i: "+i+" checksum: "+checksum);
 		}
 		if (s.length() % 2 == 0) {
+			// If number of characters is even, then repeat above loop's steps
+			// one more time.
 			x = (int) (s.charAt(i));
 			hex_value = Integer.toHexString(x);
 			x = (int) (s.charAt(i + 1));
 			hex_value = hex_value + Integer.toHexString(x);
+			// System.out.println(s.charAt(i) + "" + s.charAt(i + 1) + " : " +
+			// hex_value);
 			x = Integer.parseInt(hex_value, 16);
 		} else {
+			// If number of characters is odd, last 2 digits will be 00.
 			x = (int) (s.charAt(i));
 			hex_value = "00" + Integer.toHexString(x);
 			x = Integer.parseInt(hex_value, 16);
+			// System.out.println("odd length: "+s.charAt(i) + " : " +
+			// hex_value);
 		}
 		checksum += x;
+		// System.out.println("for i: "+i+" checksum: "+checksum);
+		// Add the generated value of 'x' from the if-else case into 'checksum'
 		hex_value = Integer.toHexString(checksum);
+		// System.out.println("hex: "+hex_value+" len: "+hex_value.length());
+		// Convert into hexadecimal string
 		if (hex_value.length() > 4) {
+			// If a carry is generated, then we wrap the carry
 			int carry = Integer.parseInt(("" + hex_value.charAt(0)), 16);
+			// Get the value of the carry bit
 			hex_value = hex_value.substring(1, 5);
+			// Remove it from the string
 			checksum = Integer.parseInt(hex_value, 16);
+			// Convert it into an int
 			checksum += carry;
+			// Add it to the checksum
 		}
 		checksum = generateComplement(checksum);
+		// Get the complement
 		String padding = Integer.toBinaryString(checksum);
 		for (int h = padding.length(); h < 16; h++) {
 			padding = "0" + padding;
 		}
+		// System.out.println("checksum: "+checksum);
 		return padding;
 	}
 
 	public static int generateComplement(int checksum) {
+		// Generates 15's complement of a hexadecimal value
 		checksum = Integer.parseInt("FFFF", 16) - checksum;
 		return checksum;
 	}
@@ -223,7 +289,9 @@ public class Client {
 				ACK += "1";
 			}
 		}
+		// System.out.println("ACK data: "+ACK);
 		String packetType = ACK.substring(48, 64);
+		// System.out.println("ACK type: "+packetType);
 		if (packetType.equals("1010101010101010")) {
 			return binToDec(ACK.substring(0, 32));
 		}
