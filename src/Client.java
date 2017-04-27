@@ -99,7 +99,7 @@ public class Client {
 			}
 			// in receiving mode
 			int timeout = 1000;// in milliseconds
-			byte[] receive = new byte[1024];
+			byte[] receive = new byte[1536];
 			DatagramPacket fromReceiver = new DatagramPacket(receive, receive.length);
 			boolean flag = true;
 
@@ -137,8 +137,7 @@ public class Client {
 
 	public static void chunksDivision(byte[] dataPacket, int MSS) {
 		int totalPackets = (int) Math.ceil((double) dataPacket.length / MSS);
-		String dataString = new String(dataPacket); // nhi chle toh utf add kre
-													// :D
+		String dataString = new String(dataPacket);
 		for (int i = 0; i < totalPackets; i++) {
 			int j = MSS * (i + 1);
 			if (j > dataString.length()) {
@@ -161,7 +160,7 @@ public class Client {
 
 	public static byte[] createHeader(int sequence, String data) {
 		String sequenceStr = Integer.toBinaryString(sequence);
-		String checksum = generateChecksum(data);
+		String checksum = checksumCalculation(data);
 		String fixedVal = "0101010101010101";
 		for (int i = sequenceStr.length(); i < 32; i++) {
 			sequenceStr = "0" + sequenceStr;
@@ -171,47 +170,42 @@ public class Client {
 		return header.getBytes();
 	}
 
-	public static String generateChecksum(String s) {
-		String hex_value = new String();
-		int x, i, checksum = 0;
-		for (i = 0; i < s.length() - 2; i = i + 2) {
-			x = (int) (s.charAt(i));
-			hex_value = Integer.toHexString(x);
-			x = (int) (s.charAt(i + 1));
-			hex_value = hex_value + Integer.toHexString(x);
-			x = Integer.parseInt(hex_value, 16);
-			checksum += x;
+	public static String checksumCalculation(String data) {
+		String hexString = new String();
+		int value, i, result = 0;
+		for (i = 0; i < data.length() - 2; i = i + 2) {
+			value = (int) (data.charAt(i));
+			hexString = Integer.toHexString(value);
+			value = (int) (data.charAt(i + 1));
+			hexString = hexString + Integer.toHexString(value);
+			value = Integer.parseInt(hexString, 16);
+			result += value;
 		}
-		if (s.length() % 2 == 0) {
-			x = (int) (s.charAt(i));
-			hex_value = Integer.toHexString(x);
-			x = (int) (s.charAt(i + 1));
-			hex_value = hex_value + Integer.toHexString(x);
-			x = Integer.parseInt(hex_value, 16);
+		if (data.length() % 2 == 0) {
+			value = (int) (data.charAt(i));
+			hexString = Integer.toHexString(value);
+			value = (int) (data.charAt(i + 1));
+			hexString = hexString + Integer.toHexString(value);
+			value = Integer.parseInt(hexString, 16);
 		} else {
-			x = (int) (s.charAt(i));
-			hex_value = "00" + Integer.toHexString(x);
-			x = Integer.parseInt(hex_value, 16);
+			value = (int) (data.charAt(i));
+			hexString = "00" + Integer.toHexString(value);
+			value = Integer.parseInt(hexString, 16);
 		}
-		checksum += x;
-		hex_value = Integer.toHexString(checksum);
-		if (hex_value.length() > 4) {
-			int carry = Integer.parseInt(("" + hex_value.charAt(0)), 16);
-			hex_value = hex_value.substring(1, 5);
-			checksum = Integer.parseInt(hex_value, 16);
-			checksum += carry;
+		result += value;
+		hexString = Integer.toHexString(result);
+		if (hexString.length() > 4) {
+			int carry = Integer.parseInt(("" + hexString.charAt(0)), 16);
+			hexString = hexString.substring(1, 5);
+			result = Integer.parseInt(hexString, 16);
+			result += carry;
 		}
-		checksum = generateComplement(checksum);
-		String padding = Integer.toBinaryString(checksum);
+		result = Integer.parseInt("FFFF", 16) - result;
+		String padding = Integer.toBinaryString(result);
 		for (int h = padding.length(); h < 16; h++) {
 			padding = "0" + padding;
 		}
 		return padding;
-	}
-
-	public static int generateComplement(int checksum) {
-		checksum = Integer.parseInt("FFFF", 16) - checksum;
-		return checksum;
 	}
 
 	public static int ackHandler(byte[] data) {

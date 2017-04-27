@@ -33,7 +33,7 @@ public class SelectiveClient {
 
 	public static void main(String[] args) throws IOException {
 		// inputs
-		System.out.println("This is client");
+		System.out.println("This is Selective Repeat client");
 		Scanner scan = new Scanner(System.in);
 		String hostname = scan.next();
 		int port = scan.nextInt();
@@ -73,10 +73,6 @@ public class SelectiveClient {
 		int m = 0;
 		long startTime = System.currentTimeMillis();
 		while ((currentIndex * mss) < dataPacket.length) {
-//			System.out.println("marker: ");
-//			for(int qw=0;qw<N;qw++)
-//				System.out.print(marker[qw]+" ");
-//			System.out.println();
 			for (m = 0; m < N; m++) {// sending
 				if ((currentIndex * mss) > dataPacket.length)
 					break;
@@ -129,20 +125,8 @@ public class SelectiveClient {
 					seqAck = ackHandler(fromReceiver.getData());
 					System.out.println("Ack received for : " + seqAck);
 					if (seqAck != -1) { // any other acknowledgement
-//						System.out.println("current index: " + currentIndex);
 						int index = seqAck - currentIndex;
 						marker[index] = 2;
-//						int check = index + 1;
-						//int one = 0;
-//						while(check<N && marker[check]==2){
-//							for (int i = check; i < N; i++) {
-//								marker[i - 1] = marker[i];
-//							}
-//							marker[N - 1] = -1;
-//							currentIndex++;
-//							check=index;
-//							one = 1;
-//						}
 						if (index == 0) {
 							while(marker[index]==2){
 							for (int i = 1; i < N; i++) {
@@ -151,19 +135,11 @@ public class SelectiveClient {
 							marker[N - 1] = -1;
 							currentIndex++;
 							}
-							// tempIndex++;
 						}
-//						System.out.println("current index: " + currentIndex);
-//						System.out.println("marker: ");
-//						for(int qw=0;qw<N;qw++)
-//							System.out.print(marker[qw]+" ");
-//						System.out.println();
 					}
 				}
 			} catch (SocketTimeoutException ste) {// timeout
 				System.out.println("Timeout, sequence number = " + seqAck);
-				// currentIndex = seqAck + 1;
-				// pointer = 0;
 			}
 		}
 		// EOF
@@ -178,8 +154,7 @@ public class SelectiveClient {
 	public static void chunksDivision(byte[] dataPacket, int MSS) {
 		int totalPackets = (int) Math.ceil((double) dataPacket.length / MSS);
 		System.out.println("Total packets: " + totalPackets);
-		String dataString = new String(dataPacket); // nhi chle toh utf add kre
-													// :D
+		String dataString = new String(dataPacket);
 		for (int i = 0; i < totalPackets; i++) {
 			int j = MSS * (i + 1);
 			if (j > dataString.length()) {
@@ -202,7 +177,7 @@ public class SelectiveClient {
 
 	public static byte[] createHeader(int sequence, String data) {
 		String sequenceStr = Integer.toBinaryString(sequence);
-		String checksum = generateChecksum(data);
+		String checksum = checksumCalculation(data);
 		String fixedVal = "0101010101010101";
 		for (int i = sequenceStr.length(); i < 32; i++) {
 			sequenceStr = "0" + sequenceStr;
@@ -212,72 +187,42 @@ public class SelectiveClient {
 		return header.getBytes();
 	}
 
-	public static String generateChecksum(String s) {
-		String hex_value = new String();
-		int x, i, checksum = 0;
-		for (i = 0; i < s.length() - 2; i = i + 2) {
-			x = (int) (s.charAt(i));
-			hex_value = Integer.toHexString(x);
-			x = (int) (s.charAt(i + 1));
-			hex_value = hex_value + Integer.toHexString(x);
-			// Extract two characters and get their hexadecimal ASCII values
-			// System.out.println(s.charAt(i) + "" + s.charAt(i + 1) + " : " +
-			// hex_value);
-			x = Integer.parseInt(hex_value, 16);
-			// Convert the hex_value into int and store it
-			checksum += x;
-			// Add 'x' into 'checksum'
-			// System.out.println("for i: "+i+" checksum: "+checksum);
+	public static String checksumCalculation(String data) {
+		String hexString = new String();
+		int value, i, result = 0;
+		for (i = 0; i < data.length() - 2; i = i + 2) {
+			value = (int) (data.charAt(i));
+			hexString = Integer.toHexString(value);
+			value = (int) (data.charAt(i + 1));
+			hexString = hexString + Integer.toHexString(value);
+			value = Integer.parseInt(hexString, 16);
+			result += value;
 		}
-		if (s.length() % 2 == 0) {
-			// If number of characters is even, then repeat above loop's steps
-			// one more time.
-			x = (int) (s.charAt(i));
-			hex_value = Integer.toHexString(x);
-			x = (int) (s.charAt(i + 1));
-			hex_value = hex_value + Integer.toHexString(x);
-			// System.out.println(s.charAt(i) + "" + s.charAt(i + 1) + " : " +
-			// hex_value);
-			x = Integer.parseInt(hex_value, 16);
+		if (data.length() % 2 == 0) {
+			value = (int) (data.charAt(i));
+			hexString = Integer.toHexString(value);
+			value = (int) (data.charAt(i + 1));
+			hexString = hexString + Integer.toHexString(value);
+			value = Integer.parseInt(hexString, 16);
 		} else {
-			// If number of characters is odd, last 2 digits will be 00.
-			x = (int) (s.charAt(i));
-			hex_value = "00" + Integer.toHexString(x);
-			x = Integer.parseInt(hex_value, 16);
-			// System.out.println("odd length: "+s.charAt(i) + " : " +
-			// hex_value);
+			value = (int) (data.charAt(i));
+			hexString = "00" + Integer.toHexString(value);
+			value = Integer.parseInt(hexString, 16);
 		}
-		checksum += x;
-		// System.out.println("for i: "+i+" checksum: "+checksum);
-		// Add the generated value of 'x' from the if-else case into 'checksum'
-		hex_value = Integer.toHexString(checksum);
-		// System.out.println("hex: "+hex_value+" len: "+hex_value.length());
-		// Convert into hexadecimal string
-		if (hex_value.length() > 4) {
-			// If a carry is generated, then we wrap the carry
-			int carry = Integer.parseInt(("" + hex_value.charAt(0)), 16);
-			// Get the value of the carry bit
-			hex_value = hex_value.substring(1, 5);
-			// Remove it from the string
-			checksum = Integer.parseInt(hex_value, 16);
-			// Convert it into an int
-			checksum += carry;
-			// Add it to the checksum
+		result += value;
+		hexString = Integer.toHexString(result);
+		if (hexString.length() > 4) {
+			int carry = Integer.parseInt(("" + hexString.charAt(0)), 16);
+			hexString = hexString.substring(1, 5);
+			result = Integer.parseInt(hexString, 16);
+			result += carry;
 		}
-		checksum = generateComplement(checksum);
-		// Get the complement
-		String padding = Integer.toBinaryString(checksum);
+		result = Integer.parseInt("FFFF", 16) - result;
+		String padding = Integer.toBinaryString(result);
 		for (int h = padding.length(); h < 16; h++) {
 			padding = "0" + padding;
 		}
-		// System.out.println("checksum: "+checksum);
 		return padding;
-	}
-
-	public static int generateComplement(int checksum) {
-		// Generates 15's complement of a hexadecimal value
-		checksum = Integer.parseInt("FFFF", 16) - checksum;
-		return checksum;
 	}
 
 	public static int ackHandler(byte[] data) {
@@ -289,9 +234,7 @@ public class SelectiveClient {
 				ACK += "1";
 			}
 		}
-		// System.out.println("ACK data: "+ACK);
 		String packetType = ACK.substring(48, 64);
-		// System.out.println("ACK type: "+packetType);
 		if (packetType.equals("1010101010101010")) {
 			return binToDec(ACK.substring(0, 32));
 		}

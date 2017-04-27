@@ -66,7 +66,7 @@ public class SelectiveServer {
 				if (rand <= pos) {
 					System.out.println("Packet loss, sequence number = " + seqNumber);
 					continue;
-				} else if (receive(dataIn, checksum) == 0) {
+				} else if (checksumValidation(dataIn, checksum) == 0) {
 					InetAddress IP = fromClient.getAddress();
 					int portNumber = fromClient.getPort();
 					byte[] acknowledgement = ackSender(seqNumber);
@@ -91,7 +91,6 @@ public class SelectiveServer {
 							}
 						}
 					} else if (seqNumber > currentIndex) {
-						System.out.println("out of order");
 						ReceivedSegment recSeg = new ReceivedSegment(seqNumber, dataIn);
 						if (head == null)
 							head = recSeg;
@@ -104,7 +103,6 @@ public class SelectiveServer {
 							}
 							if (temp.index < seqNumber){
 								temp.next = recSeg;
-								System.out.println("inserting after: "+temp.index);
 							}
 							else {
 								if(prev!=temp)
@@ -112,15 +110,7 @@ public class SelectiveServer {
 								else
 									head = recSeg;
 								recSeg.next = temp;
-								System.out.println("inserting after: "+prev.index+" before: "+temp.index);
 							}
-						}
-						System.out.println("Linked List:");
-						ReceivedSegment t = head;
-						while(t!=null)
-						{
-							System.out.print(t.index+" ");
-							t = t.next;
 						}
 					}
 				}
@@ -150,51 +140,46 @@ public class SelectiveServer {
 		return header.getBytes();
 	}
 
-	public static int generateChecksum(String s) {
-		String hex_value = new String();
-		int x, i, checksum = 0;
-		for (i = 0; i < s.length() - 2; i = i + 2) {
-			x = (int) (s.charAt(i));
-			hex_value = Integer.toHexString(x);
-			x = (int) (s.charAt(i + 1));
-			hex_value = hex_value + Integer.toHexString(x);
-			x = Integer.parseInt(hex_value, 16);
-			checksum += x;
+	public static int checksumCalculation(String data) {
+		String hexString = new String();
+		int value, i, result = 0;
+		for (i = 0; i < data.length() - 2; i = i + 2) {
+			value = (int) (data.charAt(i));
+			hexString = Integer.toHexString(value);
+			value = (int) (data.charAt(i + 1));
+			hexString = hexString + Integer.toHexString(value);
+			value = Integer.parseInt(hexString, 16);
+			result += value;
 		}
-		if (s.length() % 2 == 0) {
-			x = (int) (s.charAt(i));
-			hex_value = Integer.toHexString(x);
-			x = (int) (s.charAt(i + 1));
-			hex_value = hex_value + Integer.toHexString(x);
-			x = Integer.parseInt(hex_value, 16);
+		if (data.length() % 2 == 0) {
+			value = (int) (data.charAt(i));
+			hexString = Integer.toHexString(value);
+			value = (int) (data.charAt(i + 1));
+			hexString = hexString + Integer.toHexString(value);
+			value = Integer.parseInt(hexString, 16);
 		} else {
-			x = (int) (s.charAt(i));
-			hex_value = "00" + Integer.toHexString(x);
-			x = Integer.parseInt(hex_value, 16);
+			value = (int) (data.charAt(i));
+			hexString = "00" + Integer.toHexString(value);
+			value = Integer.parseInt(hexString, 16);
 		}
-		checksum += x;
-		hex_value = Integer.toHexString(checksum);
-		if (hex_value.length() > 4) {
-			int carry = Integer.parseInt(("" + hex_value.charAt(0)), 16);
-			hex_value = hex_value.substring(1, 5);
-			checksum = Integer.parseInt(hex_value, 16);
-			checksum += carry;
+		result += value;
+		hexString = Integer.toHexString(result);
+		if (hexString.length() > 4) {
+			int carry = Integer.parseInt(("" + hexString.charAt(0)), 16);
+			hexString = hexString.substring(1, 5);
+			result = Integer.parseInt(hexString, 16);
+			result += carry;
 		}
-		checksum = generateComplement(checksum);
-		return checksum;
+		result = Integer.parseInt("FFFF", 16) - result;
+		return result;
 	}
 
-	public static int generateComplement(int checksum) {
-		checksum = Integer.parseInt("FFFF", 16) - checksum;
-		return checksum;
-	}
-
-	public static int receive(String s, int checksum) {
-		int generated_checksum = generateChecksum(s);
-		generated_checksum = generateComplement(generated_checksum);
-		int syndrome = generated_checksum + checksum;
-		syndrome = generateComplement(syndrome);
-		return syndrome;
+	public static int checksumValidation(String data, int oldChecksum) {
+		int newChecksum = checksumCalculation(data);
+		newChecksum = Integer.parseInt("FFFF", 16) - newChecksum;
+		int valid = newChecksum + oldChecksum;
+		valid = Integer.parseInt("FFFF", 16) - valid;
+		return valid;
 	}
 
 	private static int binToDec(String substring) {
