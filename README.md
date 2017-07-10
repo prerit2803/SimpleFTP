@@ -13,7 +13,7 @@ There is a server which is running on port 7734 and checks for each sequence num
 
 Clients are allotted port numbers randomly. They divide the data to be sent into chunks based on the Maximum Segment Size and start sending data packets to the Server.
 
-##How to run our code?
+## How to run our code?
 
 1. Create an Eclipse project with same name as our project and change the location to the place where you have extracted our project files.
 2. To start the server, run Server.java and Enter Port Number (Ex:7734), Output filename with complete path and Loss Probability value.
